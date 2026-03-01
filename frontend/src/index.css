@@ -1,0 +1,138 @@
+@import 'tailwindcss';
+
+:root {
+  --bg-root: #07080F;
+  --bg-surface: #0B1020;
+  --bg-card: #111A33;
+  --bg-card-hover: #151F3D;
+  --bg-input: #0D1528;
+  --bg-overlay: rgba(7, 8, 15, 0.85);
+
+  --text-primary: #EAF0FF;
+  --text-secondary: #C2CCE6;
+  --text-muted: #7A87A6;
+  --text-disabled: #4A5270;
+
+  --accent-primary: #0099FF;
+  --accent-primary-hover: #33B1FF;
+  --accent-primary-muted: rgba(0, 153, 255, 0.12);
+  --accent-secondary: #2BD9C7;
+  --accent-secondary-hover: #5AE8D9;
+  --accent-secondary-muted: rgba(43, 217, 199, 0.10);
+
+  --success: #2EE59D;
+  --success-muted: rgba(46, 229, 157, 0.10);
+  --warning: #FFCC66;
+  --warning-muted: rgba(255, 204, 102, 0.10);
+  --error: #FF5C7A;
+  --error-muted: rgba(255, 92, 122, 0.10);
+  --info: #5BA4F5;
+  --info-muted: rgba(91, 164, 245, 0.10);
+
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --border-accent: rgba(0, 153, 255, 0.40);
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+  --shadow-glow: 0 0 20px rgba(0, 153, 255, 0.15);
+
+  /* shadcn compat */
+  --background: var(--bg-root);
+  --foreground: var(--text-primary);
+  --card: var(--bg-card);
+  --card-foreground: var(--text-primary);
+  --popover: var(--bg-card);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--accent-primary);
+  --primary-foreground: #ffffff;
+  --secondary: var(--accent-secondary);
+  --secondary-foreground: var(--bg-root);
+  --muted: var(--bg-surface);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--accent-primary);
+  --accent-foreground: #ffffff;
+  --destructive: var(--error);
+  --destructive-foreground: #ffffff;
+  --border: var(--border-default);
+  --input: var(--bg-input);
+  --ring: var(--accent-primary);
+  --radius: 10px;
+}
+
+@theme inline {
+  --font-sans: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+}
+
+@layer base {
+  * { @apply border-border; }
+  html { @apply scroll-smooth; }
+
+  body {
+    @apply bg-[var(--bg-root)] text-[var(--text-primary)];
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    margin: 0;
+    padding: 0;
+  }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(0, 153, 255, 0.15); }
+    50% { box-shadow: 0 0 40px rgba(0, 153, 255, 0.25); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+  @keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  @keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  .animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+  .animate-float { animation: float 6s ease-in-out infinite; }
+  .animate-gradient-shift { background-size: 200% 200%; animation: gradient-shift 15s ease infinite; }
+  .skeleton-loading {
+    background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-card-hover) 50%, var(--bg-card) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
+  }
+}
