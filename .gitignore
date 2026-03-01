@@ -11,13 +11,10 @@ build/
 dist/
 *.tsbuildinfo
 
-# Environment variables
+# Environment (keep .env.example)
 .env
 .env.local
 .env.*.local
-.env.development
-.env.test
-.env.production
 
 # Database
 *.db
