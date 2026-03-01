@@ -1,93 +1,134 @@
 # CipherSQL Studio
 
-CipherSQL Studio is a premium SQL sandbox platform allowing students to practice SQL queries in a completely secure environment with intelligent LLM hints.
+A SQL practice platform where students can solve challenges against a real PostgreSQL database. Built with React, Express, and TypeScript.
 
-##  Architecture & Security
+![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=node.js)
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791?logo=postgresql)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-### 1. Schema-per-Assignment
-We use a **Pattern A (Schema-per-assignment)** approach for data isolation. Every assignment is contained within its own PostgreSQL schema (e.g., `a_001`). This ensures clean data isolation, prevents students from discovering answers to other assignments, and allows us to easily enforce security privileges scoped to a specific problem context. 
+## What it does
 
-### 2. Defense-in-Depth Query Security
-When executing user-provided SQL, we assume malicious intent. Our execution layer employs several guardrails:
-- **AST Validation**: We use `node-sql-parser` to parse the query into an AST and enforce that exactly **one** statement is provided and it must be a `SELECT` (or `WITH ... SELECT`) statement. All DDL/DML statements are rejected at the application level before even touching the DB.
-- **Read-Only Transactions**: All user queries are executed using `BEGIN READ ONLY`.
-- **Database Roles**: Queries are executed via a constrained `cipher_student` role which only has `USAGE` on the specific schema and `SELECT` on its tables. It lacks `CREATE`, `TEMP`, and `COPY` privileges.
-- **Timeouts & Limits**: We strictly enforce `statement_timeout` and `lock_timeout` to stop runaway queries (like `pg_sleep`). We also wrap the user's query (`SELECT * FROM (...) q LIMIT 200;`) to prevent out-of-memory errors from massive joins.
-- **Keyword Denylist**: We scan for dangerous functions (`dblink`, `lo_import`, `pg_write_file`) that could potentially be used for local file exfiltration or DoS.
+- Browse SQL challenges sorted by difficulty (Beginner → Advanced)
+- Write queries in a Monaco editor (same as VS Code)
+- Run them against a live PostgreSQL database
+- Get AI-powered hints when you're stuck
+- See database schemas, expected output, and past attempts
 
-*(See OWASP SQL Injection Prevention Guidelines for more on least-privilege DB access).*
+Queries run inside a sandboxed environment — only `SELECT` is allowed, everything else is blocked at multiple levels.
 
-## 🛣 Data-Flow Diagram
+## Quick start
 
-```
-[Student Browser]
-       │
-       │ 1. User clicks "Run Query"
-       ▼
-[React Frontend] ──> Validates non-empty query string
-       │
-       │ 2. POST /api/assignments/:id/execute
-       ▼
-[Express Backend]
-       │
-       ├─> 3a. MongoDB: Fetches assignment metadata (e.g. schemaName "a_001")
-       ├─> 3b. AST Validator: Ensures exactly 1 SELECT statement
-       │
-       ▼
-[PostgreSQL Database]
-       │
-       ├─> 4a. Connects as `cipher_student`
-       ├─> 4b. `BEGIN READ ONLY`
-       ├─> 4c. `SET search_path TO a_001`
-       ├─> 4d. `SET statement_timeout = 10000`
-       ├─> 4e. Executes wrapped query
-       └─> 4f. `COMMIT` or `ROLLBACK` on error
-       │
-       ▼
-[Express Backend] ──> Maps DB error messages to friendly student errors
-       │
-       │ 5. Returns HTTP 200 Results OR HTTP 400 Error
-       ▼
-[React Frontend] ──> Renders interactive Data Table / Error UI
-```
-
-##  API Documentation
-
-### Endpoints
-- `GET /api/health` - Check API status
-- `POST /api/seed` - Seeds MongoDB with sample assignments
-- `GET /api/assignments` - List all assignments
-- `GET /api/assignments/:id` - Fetch a single assignment
-- `GET /api/assignments/:id/schema` - Introspects DB and returns tables, columns, and 5 sample rows for the assignment.
-- `POST /api/assignments/:id/execute` - Body `{ sql: string }`. Returns columns and rows.
-- `POST /api/assignments/:id/hint` - Body `{ sql: string, lastError?: string }`. Returns LLM hint.
-
-##  Known Limitations
-- Only `SELECT` statements are supported. Writes are universally blocked.
-- CTEs (`WITH` clauses) are supported, but must end in a `SELECT`.
-- Results are strictly paginated/limited to 200 rows max to avoid browser lockups.
-- No cross-schema `JOIN`s are permitted (blocked by `search_path` and roles).
-
-## Setup & Execution
-
-### 1. Prerequisites
-- Docker & Docker Compose
-- Node.js 18+
-
-### 2. Start Services
 ```bash
-# Start Postgres and Mongo via Docker
+git clone https://github.com/SL177Y-0/CipherSQL.git
+cd "CipherSQL Studio"
+
+# spin up postgres + mongo
 docker-compose up -d
 
-# Install dependencies in the root
+# install everything
 npm install
+cd backend && npm install && cd ..
+cd frontend && npm install && cd ..
 
-# Start both Backend and Frontend concurrently
+# run it
 npm run dev
+```
 
-# Run End-to-End Tests
+Frontend runs on http://localhost:5173, API on http://localhost:4000/api
+
+The app auto-seeds sample assignments on first load if the database is empty.
+
+## Tech stack
+
+**Frontend:** React 18, Vite, TypeScript, Tailwind CSS, Framer Motion, Monaco Editor
+
+**Backend:** Express.js, TypeScript, node-sql-parser (SQL validation), pg, Mongoose
+
+**Databases:** PostgreSQL 15 (query sandbox), MongoDB 6 (assignments & attempts)
+
+**Testing:** Playwright (37 e2e tests)
+
+## Project layout
+
+```
+├── backend/
+│   └── src/
+│       ├── index.ts          # express server setup
+│       ├── routes/api.ts     # all 8 API endpoints
+│       ├── db/               # pg + mongo connections
+│       ├── middleware/        # SQL validator + error mapper
+│       ├── models/           # mongoose schemas
+│       └── services/llm.ts   # hint generation + rate limiter
+├── frontend/
+│   └── src/
+│       ├── App.tsx           # routes
+│       ├── pages/            # HomePage + AssignmentPage
+│       ├── lib/api.ts        # typed API client
+│       └── index.css         # design system (CSS vars)
+├── DataBase/
+│   └── 01-init.sql           # schema + seed data + roles
+├── tests/                    # playwright e2e tests
+├── docs/                     # architecture + deployment docs
+└── docker-compose.yml
+```
+
+## API endpoints
+
+| Method | Path | What it does |
+|--------|------|-------------|
+| GET | `/api/health` | Health check |
+| POST | `/api/seed` | Load sample assignments |
+| GET | `/api/assignments` | List all assignments |
+| GET | `/api/assignments/:id` | Get one assignment |
+| GET | `/api/assignments/:id/schema` | Get table structure + sample data |
+| POST | `/api/assignments/:id/execute` | Run a SQL query |
+| POST | `/api/assignments/:id/hint` | Get an AI hint (rate limited) |
+| GET | `/api/assignments/:id/attempts` | Recent query attempts |
+
+## How the sandbox works
+
+Every query goes through 5 checks before it touches the database:
+
+1. **Parse** — SQL gets parsed into an AST, must be a single `SELECT`
+2. **Denylist** — 23 blocked keywords (pg_sleep, dblink, copy, etc.)
+3. **Function check** — 8 blocked functions (pg_read_file, lo_import, etc.)
+4. **Transaction** — runs inside `BEGIN READ ONLY` with a 10s timeout
+5. **Role** — executes as `student_user` who only has `SELECT` on assignment schemas
+
+Results are capped at 200 rows.
+
+## Environment variables
+
+Copy `.env.example` to `.env` and fill in your values:
+
+```env
+PORT=4000
+CORS_ORIGIN=http://localhost:5173
+PG_URL=postgresql://admin:password@localhost:5432/ciphersqlstudio_app
+PG_STUDENT_URL=postgresql://student_user:student_password@localhost:5432/ciphersqlstudio_app
+MONGO_URL=mongodb://admin:password@localhost:27017/ciphersqlstudio_mongo?authSource=admin
+LLM_API_KEY=your_key_here
+LLM_PROVIDER=gemini
+```
+
+The defaults work fine for local development with docker-compose.
+
+## Running tests
+
+```bash
+cd tests && npx playwright install
 npm run test:e2e
 ```
 
-### 3. Expectations
-By default, the `docker-compose.yml` initializes PostgreSQL with an `a_001` schema, creates a `departments` and `employees` table, and inserts seed data. It also creates the `cipher_student` role and configures `student_user` with the strict least-privilege setup.
+## Known limitations
+
+- Only SELECT queries (by design)
+- Results capped at 200 rows
+- Rate limiting is in-memory (resets on restart)
+- No user auth — everyone is "anonymous"
+- AI hints use mock responses without an API key
+
+## License
+
+MIT
